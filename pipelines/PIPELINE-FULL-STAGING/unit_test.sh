@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source todo-list-aws/bin/activate
+set -e
 set -x
 export PYTHONPATH="${PYTHONPATH}:$(pwd)"
 echo "PYTHONPATH: $PYTHONPATH"
