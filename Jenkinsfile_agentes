@@ -70,6 +70,14 @@ pipeline {
           hostname
           echo "================================="
         '''
+        sh '''
+          echo "=== INFO NODO ==="
+          echo "NODE_NAME=$NODE_NAME"
+          echo "EXECUTOR_NUMBER=$EXECUTOR_NUMBER"
+          echo "WORKSPACE=$WORKSPACE"
+          echo "NODE_LABELS=$NODE_LABELS"
+          echo "================="
+        '''
 
         sh '''
           sam validate --region "${AWS_REGION}"
@@ -201,6 +209,14 @@ pipeline {
           hostname
           echo "=============================="
         '''
+            sh '''
+      echo "=== INFO NODO ==="
+      echo "NODE_NAME=$NODE_NAME"
+      echo "EXECUTOR_NUMBER=$EXECUTOR_NUMBER"
+      echo "WORKSPACE=$WORKSPACE"
+      echo "NODE_LABELS=$NODE_LABELS"
+      echo "================="
+    '''
 
         sh '''
           sam validate --region "${AWS_REGION}"
