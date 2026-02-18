@@ -7,7 +7,12 @@ du -hs * | sort -h
 ENVIRONMENT="${ENVIRONMENT:-staging}"
 
 sam deploy --template-file .aws-sam/build/template.yaml \
-	  --config-file samconfig.toml --config-env "${ENVIRONMENT}" \
-	    --stack-name "${STACK_NAME}" \
-	      --no-confirm-changeset --force-upload --no-fail-on-empty-changeset --no-progressbar
+	  --config-file samconfig.toml \
+	    --config-env "${ENVIRONMENT}" \
+	      --stack-name "${STACK_NAME}" \
+	        --region "${AWS_REGION}" \
+		  --no-confirm-changeset \
+		    --force-upload \
+		      --no-fail-on-empty-changeset \
+		        --no-progressbar
 
