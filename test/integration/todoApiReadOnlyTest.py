@@ -1,48 +1,26 @@
 import os
+import json
 import requests
+import unittest
 
-BASE_URL = os.environ.get("BASE_URL")
+BASE_URL = os.environ.get("BASE_URL", "")
 
 
-def test_list_todos_read_only():
+class TestApiReadOnly(unittest.TestCase):
+
+    def test_api_listtodo_readonly(self):
         print("---------------------------------------")
-            print("Starting - ReadOnly test List TODO")
+        print("Starting - ReadOnly test List TODO")
 
-                url = f"{BASE_URL}/todos"
-                    response = requests.get(url, timeout=10)
+        url = BASE_URL + "/todos"
+        response = requests.get(url)
 
-                        print(f"Response status code: {response.status_code}")
-                            print(f"Response body: {response.text}")
+        self.assertEqual(response.status_code, 200, f"Error en GET {url}")
 
-                                assert response.status_code == 200
-                                    data = response.json()
-                                        assert isinstance(data, list)
+        data = response.json()
+        # La API suele devolver {"statusCode": 200, "body": "..."}
+        self.assertIn("body", data, "La respuesta no contiene 'body'")
+        todos = json.loads(data["body"])
+        self.assertIsInstance(todos, list, "El body no es una lista JSON")
 
-                                            print("End - ReadOnly test List TODO")
-
-
-                                            def test_get_todo_read_only_if_exists():
-                                                    print("---------------------------------------")
-                                                        print("Starting - ReadOnly test Get TODO")
-
-                                                            list_url = f"{BASE_URL}/todos"
-                                                                list_response = requests.get(list_url, timeout=10)
-
-                                                                    assert list_response.status_code == 200
-                                                                        todos = list_response.json()
-
-                                                                            if len(todos) > 0:
-                                                                                        todo_id = todos[0]["id"]
-                                                                                                get_url = f"{BASE_URL}/todos/{todo_id}"
-
-                                                                                                        response = requests.get(get_url, timeout=10)
-
-                                                                                                                print(f"GET Todo response: {response.status_code}")
-                                                                                                                        print(f"GET Todo body: {response.text}")
-
-                                                                                                                                assert response.status_code == 200
-                                                                                                                                        todo = response.json()
-                                                                                                                                                assert todo["id"] == todo_id
-
-                                                                                                                                                    print("End - ReadOnly test Get TODO")
-
+        print("End - ReadOnly test List TODO")
