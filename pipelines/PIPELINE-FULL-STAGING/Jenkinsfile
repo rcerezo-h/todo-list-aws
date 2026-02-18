@@ -25,9 +25,10 @@ pipeline {
             post {
                 always {
                     script {
-                            publishCoverage (failUnhealthy: true, 
-                            globalThresholds: [[thresholdTarget: 'Line', unhealthyThreshold: 70.0]],
-                            adapters: [cobertura(path: 'coverage.xml')]
+                       cobertura(
+        		 coberturaReportFile: 'coverage.xml',
+        		 failUnhealthy: true,
+        		 lineCoverageTargets: '70,0,0'
 			    )
                     }
                 }
