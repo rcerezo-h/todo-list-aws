@@ -28,7 +28,6 @@ pipeline {
           echo "==============="
         '''
 
-        // Guardamos el repo entero para llevárnoslo a otros nodos
         stash name: 'repo', includes: '**', useDefaultExcludes: false
       }
     }
@@ -48,8 +47,11 @@ pipeline {
         '''
 
         sh '''
-          flake8 src --exit-zero --format=pylint > flake8.out
-          bandit -r src -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" || true
+          echo "PATH=$PATH"
+          python3 -m pip install --user flake8 bandit
+        
+          python3 -m flake8 src --exit-zero --format=pylint > flake8.out
+          python3 -m bandit -r src -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" || true
         '''
 
         recordIssues tools: [
