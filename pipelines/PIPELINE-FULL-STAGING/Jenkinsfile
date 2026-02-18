@@ -1,5 +1,12 @@
 pipeline {
     agent any
+
+    environment {
+        	ENVIRONMENT = 'staging'
+        	STACK_NAME  = 'todo-list-aws-staging'
+        	AWS_REGION  = 'us-east-1'
+    }
+
     stages {
         
         stage('SetUp'){
@@ -18,11 +25,9 @@ pipeline {
             post {
                 always {
                     script {
-                        def failed = publishCoverage (failUnhealthy: true, 
+                            publishCoverage (failUnhealthy: true, 
                             globalThresholds: [[thresholdTarget: 'Line', unhealthyThreshold: 70.0]],
-                            adapters: [coberturaAdapter(
-                                mergeToOneReport: true, 
-                                path: '**/coverage.xml')])
+                            adapters: [cobertura(path: '**/coverage.xml')]
                     }
                 }
             }
@@ -42,8 +47,10 @@ pipeline {
         stage('Integration Test after deploy'){
             steps{
                 script {
-                    def BASE_URL = sh( script: "aws cloudformation describe-stacks --stack-name todo-list-aws-staging --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --region us-east-1 --output text",
-                        returnStdout: true)
+                   def BASE_URL = sh(
+  		    script: "aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query 'Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue' --region ${AWS_REGION} --output text",
+                    returnStdout: true
+                   ).trim()
                     echo "$BASE_URL"
                     echo 'Initiating Integration Tests'
                     sh "bash pipelines/common-steps/integration.sh $BASE_URL"
