@@ -27,7 +27,7 @@ pipeline {
                         returnStdout: true)
                     echo "$BASE_URL"
                     echo 'Initiating Integration Tests'
-                    sh "bash pipelines/common-steps/integration.sh $BASE_URL"
+                    sh "bash pipelines/common-steps/integration_readonly.sh $BASE_URL"
                 }
             }
         }
