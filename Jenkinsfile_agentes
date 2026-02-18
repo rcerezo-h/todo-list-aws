@@ -264,16 +264,17 @@ pipeline {
     }
   }
 
-  post {
-    always {
-      script {
-        if (fileExists('rest-prod.xml')) {
-          junit 'rest-prod.xml'
-        } else {
-          echo 'No se generó rest-prod.xml (falló pytest antes de crear el reporte)'
+    post {
+      always {
+        script {
+          if (fileExists('rest-prod.xml')) {
+            junit 'rest-prod.xml'
+          } else {
+            echo 'No se generó rest-prod.xml (falló pytest antes de crear el reporte)'
+          }
         }
       }
     }
   }
-}
 
+}
