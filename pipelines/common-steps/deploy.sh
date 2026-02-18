@@ -1,13 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 set -x
-ENVIRONMENT="${ENVIRONMENT:-production}"
+ENVIRONMENT="${ENVIRONMENT:-staging}"
 AWS_REGION="${AWS_REGION:-us-east-1}"
 STACK_NAME="${STACK_NAME:-todo-list-aws-${ENVIRONMENT}}"
 
 du -hs * | sort -h
 
-ENVIRONMENT="${ENVIRONMENT:-staging}"
 
 sam deploy --template-file .aws-sam/build/template.yaml \
 	  --config-file samconfig.toml \
