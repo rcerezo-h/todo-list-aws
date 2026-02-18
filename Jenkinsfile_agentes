@@ -4,6 +4,7 @@ pipeline {
   environment {
     AWS_REGION = 'us-east-1'
     GIT_CREDENTIALS_ID = 'github-token-user'
+    PROMOTED_TO_MASTER = 'false'
   }
 
   options {
@@ -178,11 +179,15 @@ pipeline {
             git push origin master
           '''
         }
+              script {
+          env.PROMOTED_TO_MASTER = 'true'
+          echo "Promoción a master completada. PROMOTED_TO_MASTER=${env.PROMOTED_TO_MASTER}"
+        }
       }
     }
 
     stage('Build + Deploy PRODUCTION') {
-      when { expression { env.GIT_BRANCH ==~ /(master|origin\/master)/ } }
+      when { expression { env.PROMOTED_TO_MASTER == 'true' } }
       agent { label 'built-in' }
       steps {
         cleanWs()
@@ -222,7 +227,7 @@ pipeline {
     }
 
     stage('API Tests PRODUCTION (readonly)') {
-      when { expression { env.GIT_BRANCH ==~ /(master|origin\/master)/ } }
+      when { expression { env.PROMOTED_TO_MASTER == 'true' } }
       agent { label 'api-agent' }
       steps {
         cleanWs()
