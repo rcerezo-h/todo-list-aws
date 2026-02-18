@@ -53,11 +53,7 @@ pipeline {
           python3 -m flake8 src --exit-zero --format=pylint > flake8.out
           python3 -m bandit -r src -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" || true
         '''
-
-        recordIssues tools: [
-          pyLint(name: 'Flake8', pattern: 'flake8.out'),
-          pyLint(name: 'Bandit', pattern: 'bandit.out')
-        ]
+      archiveArtifacts artifacts: 'flake8.out, bandit.out', fingerprint: true
       }
     }
 
