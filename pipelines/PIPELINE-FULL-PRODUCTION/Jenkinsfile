@@ -17,7 +17,7 @@ pipeline {
         stage('Deploy'){
             steps{
                 echo 'Initiating Deployment'
-                sh "bash pipelines/common-steps/deploy.sh"
+                sh "ENVIRONMENT=production bash pipelines/common-steps/deploy.sh"
             }
         }
         stage('Integration Test after deploy'){

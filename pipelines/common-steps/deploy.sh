@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 set -x
+ENVIRONMENT="${ENVIRONMENT:-production}"
+STACK_NAME="todo-list-aws-${ENVIRONMENT}"
 
 du -hs * | sort -h
 
