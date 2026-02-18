@@ -79,16 +79,16 @@ pipeline {
         '''
 
         script {
-          def apiUrl = sh(
-            script: '''
-              aws cloudformation describe-stacks \
-                --stack-name todo-list-aws-staging \
-                --query "Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue" \
-                --region us-east-1 \
-                --output text
-            ''',
-            returnStdout: true
-          ).trim()
+         def apiUrl = sh(
+          script: """
+            aws cloudformation describe-stacks \
+              --stack-name todo-list-aws-staging \
+              --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue | [0]" \
+              --region ${AWS_REGION} \
+              --output text
+          """,
+          returnStdout: true
+        ).trim()
 
           writeFile file: 'staging_url.txt', text: apiUrl + "\n"
           echo "STAGING URL => ${apiUrl}"
@@ -192,13 +192,13 @@ pipeline {
 
         script {
           def apiUrl = sh(
-            script: '''
+            script: """
               aws cloudformation describe-stacks \
                 --stack-name todo-list-aws-production \
-                --query "Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue" \
-                --region us-east-1 \
+                --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue | [0]" \
+                --region ${AWS_REGION} \
                 --output text
-            ''',
+            """,
             returnStdout: true
           ).trim()
 
