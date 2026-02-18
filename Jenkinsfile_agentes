@@ -229,41 +229,50 @@ pipeline {
     }
 
     stage('API Tests PRODUCTION (readonly)') {
-      when { expression { return PROMOTED } }
-      agent { label 'api-agent' }
-      steps {
-        cleanWs()
-          checkout([$class: 'GitSCM',
-                branches: [[name: '*/master']],
-                userRemoteConfigs: [[url: 'https://github.com/rcerezo-h/todo-list-aws.git']]
-              ])
+  when { expression { return PROMOTED } }
+  agent { label 'api-agent' }
 
+  steps {
+    cleanWs()
+
+    // ejecuta sobre master para que los tests sean los de prod
+    checkout([$class: 'GitSCM',
+      branches: [[name: '*/master']],
+      userRemoteConfigs: [[url: 'https://github.com/rcerezo-h/todo-list-aws.git']]
+    ])
+
+    // TRAE EL FICHERO prod_url.txt generado en el stage anterior
+    unstash 'prod-url'
+
+    sh '''
+      echo "=== API AGENT (PROD READONLY) ==="
+      whoami
+      hostname
+      echo "================================="
+    '''
+
+    script {
+      def apiUrl = readFile('prod_url.txt').trim()
+      withEnv(["BASE_URL=${apiUrl}"]) {
         sh '''
-          echo "=== API AGENT (PROD READONLY) ==="
-          whoami
-          hostname
-          echo "================================="
+          set -e
+          python3 -m pip install --user pytest requests
+          export PATH="$HOME/.local/bin:$PATH"
+          python3 -m pytest -s --junitxml=rest-prod.xml -m "readonly" test/integration/todoApiTest.py
         '''
-
-        script {
-          def apiUrl = readFile('prod_url.txt').trim()
-          withEnv(["BASE_URL=${apiUrl}"]) {
-            sh '''
-              # solo readonly
-              pytest -s --junitxml=rest-prod.xml -m "readonly" test/integration/todoApiTest.py
-            '''
-          }
-        }
-      }
-      post {
-        always { junit 'rest-prod.xml' }
       }
     }
   }
 
   post {
     always {
-      echo "Fin del pipeline"
+      script {
+        if (fileExists('rest-prod.xml')) {
+          junit 'rest-prod.xml'
+        } else {
+          echo 'No se generó rest-prod.xml (falló pytest antes de crear el reporte)'
+        }
+      }
     }
   }
 }
