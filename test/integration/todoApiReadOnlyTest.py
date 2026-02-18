@@ -5,7 +5,6 @@ import unittest
 
 BASE_URL = os.environ.get("BASE_URL", "")
 
-
 class TestApiReadOnly(unittest.TestCase):
 
     def test_api_listtodo_readonly(self):
@@ -18,9 +17,14 @@ class TestApiReadOnly(unittest.TestCase):
         self.assertEqual(response.status_code, 200, f"Error en GET {url}")
 
         data = response.json()
-        # La API suele devolver {"statusCode": 200, "body": "..."}
-        self.assertIn("body", data, "La respuesta no contiene 'body'")
-        todos = json.loads(data["body"])
-        self.assertIsInstance(todos, list, "El body no es una lista JSON")
+
+        # Caso 1: Lambda proxy -> {"statusCode":200,"body":"[...]"}
+        if isinstance(data, dict) and "body" in data:
+            todos = json.loads(data["body"])
+        # Caso 2: API devuelve directamente la lista -> [...]
+        else:
+            todos = data
+
+        self.assertIsInstance(todos, list, "La respuesta no es una lista de TODOs")
 
         print("End - ReadOnly test List TODO")
