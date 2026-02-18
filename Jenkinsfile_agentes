@@ -4,7 +4,6 @@ pipeline {
   environment {
     AWS_REGION = 'us-east-1'
     GIT_CREDENTIALS_ID = 'github-token-user'
-    PROMOTED_TO_MASTER = 'false'
   }
 
   options {
@@ -179,19 +178,22 @@ pipeline {
             git push origin master
           '''
         }
-              script {
-          env.PROMOTED_TO_MASTER = 'true'
-          echo "Promoción a master completada. PROMOTED_TO_MASTER=${env.PROMOTED_TO_MASTER}"
-        }
+          script {
+            PROMOTED = true
+            echo "Promoción a master completada. PROMOTED=${PROMOTED}"
+          }
       }
     }
 
     stage('Build + Deploy PRODUCTION') {
-      when { expression { env.PROMOTED_TO_MASTER == 'true' } }
+      when { expression { return PROMOTED } }
       agent { label 'built-in' }
       steps {
         cleanWs()
-        unstash 'repo'
+        checkout([$class: 'GitSCM',
+      branches: [[name: '*/master']],
+      userRemoteConfigs: [[url: 'https://github.com/rcerezo-h/todo-list-aws.git']]
+      ])
 
         sh '''
           echo "=== BUILT-IN (PROD DEPLOY) ==="
@@ -227,12 +229,14 @@ pipeline {
     }
 
     stage('API Tests PRODUCTION (readonly)') {
-      when { expression { env.PROMOTED_TO_MASTER == 'true' } }
+      when { expression { return PROMOTED } }
       agent { label 'api-agent' }
       steps {
         cleanWs()
-        unstash 'repo'
-        unstash 'prod-url'
+          checkout([$class: 'GitSCM',
+                branches: [[name: '*/master']],
+                userRemoteConfigs: [[url: 'https://github.com/rcerezo-h/todo-list-aws.git']]
+              ])
 
         sh '''
           echo "=== API AGENT (PROD READONLY) ==="
