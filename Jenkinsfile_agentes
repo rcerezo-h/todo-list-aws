@@ -138,7 +138,6 @@ pipeline {
           }
         }
       }
-    }
 
     stage('Promote: merge develop -> master') {
       when { expression { env.GIT_BRANCH ==~ /(develop|origin\/develop)/ } }
