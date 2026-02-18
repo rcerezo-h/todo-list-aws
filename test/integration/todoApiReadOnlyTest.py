@@ -18,10 +18,11 @@ class TestApiReadOnly(unittest.TestCase):
 
         data = response.json()
 
-        # Caso 1: Lambda proxy -> {"statusCode":200,"body":"[...]"}
+        # Aceptar ambos formatos:
+        # 1) Lambda proxy: {"statusCode":200,"body":"[...]"}
+        # 2) Respuesta directa: [...]
         if isinstance(data, dict) and "body" in data:
             todos = json.loads(data["body"])
-        # Caso 2: API devuelve directamente la lista -> [...]
         else:
             todos = data
 
