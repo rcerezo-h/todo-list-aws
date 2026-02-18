@@ -1,0 +1,252 @@
+pipeline {
+  agent none
+
+  environment {
+    AWS_REGION = 'us-east-1'
+    GIT_CREDENTIALS_ID = 'github-token-user'
+  }
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+  }
+
+  stages {
+
+    stage('Checkout') {
+      agent { label 'built-in' }
+      steps {
+        cleanWs()
+        checkout scm
+
+        sh '''
+          echo "=== CONTEXTO ==="
+          whoami
+          hostname
+          git rev-parse --abbrev-ref HEAD || true
+          echo "GIT_BRANCH=$GIT_BRANCH"
+          echo "==============="
+        '''
+
+        // Guardamos el repo entero para llevárnoslo a otros nodos
+        stash name: 'repo', includes: '**', useDefaultExcludes: false
+      }
+    }
+
+    stage('Static Analysis (Flake8 + Bandit)') {
+      when { expression { env.GIT_BRANCH ==~ /(develop|origin\/develop)/ } }
+      agent { label 'static-agent' }
+      steps {
+        cleanWs()
+        unstash 'repo'
+
+        sh '''
+          echo "=== STATIC AGENT ==="
+          whoami
+          hostname
+          echo "==================="
+        '''
+
+        sh '''
+          flake8 src --exit-zero --format=pylint > flake8.out
+          bandit -r src -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}" || true
+        '''
+
+        recordIssues tools: [
+          flake8(pattern: 'flake8.out'),
+          pyLint(name: 'Bandit', pattern: 'bandit.out')
+        ]
+      }
+    }
+
+    stage('Build + Deploy STAGING') {
+      when { expression { env.GIT_BRANCH ==~ /(develop|origin\/develop)/ } }
+      agent { label 'built-in' }
+      steps {
+        cleanWs()
+        unstash 'repo'
+
+        sh '''
+          echo "=== BUILT-IN (STAGING DEPLOY) ==="
+          whoami
+          hostname
+          echo "================================="
+        '''
+
+        sh '''
+          sam validate --region "${AWS_REGION}"
+          sam build
+          # despliegue
+          ENVIRONMENT=staging bash pipelines/common-steps/deploy.sh
+        '''
+
+        script {
+          def apiUrl = sh(
+            script: '''
+              aws cloudformation describe-stacks \
+                --stack-name todo-list-aws-staging \
+                --query "Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue" \
+                --region us-east-1 \
+                --output text
+            ''',
+            returnStdout: true
+          ).trim()
+
+          writeFile file: 'staging_url.txt', text: apiUrl + "\n"
+          echo "STAGING URL => ${apiUrl}"
+
+          stash name: 'staging-url', includes: 'staging_url.txt'
+        }
+      }
+    }
+
+    stage('API Tests STAGING (pytest)') {
+      when { expression { env.GIT_BRANCH ==~ /(develop|origin\/develop)/ } }
+      agent { label 'api-agent' }
+      steps {
+        cleanWs()
+        unstash 'repo'
+        unstash 'staging-url'
+
+        sh '''
+          echo "=== API AGENT (STAGING TESTS) ==="
+          whoami
+          hostname
+          echo "================================="
+        '''
+
+        script {
+          def apiUrl = readFile('staging_url.txt').trim()
+          withEnv(["BASE_URL=${apiUrl}"]) {
+            sh '''
+              # usa tu script si ya existe
+              # bash pipelines/common-steps/integration.sh "$BASE_URL"
+              pytest -s --junitxml=rest-staging.xml test/integration/todoApiTest.py
+            '''
+          }
+        }
+      }
+      post {
+        always { junit 'rest-staging.xml' }
+      }
+    }
+
+    stage('Promote: merge develop -> master') {
+      when { expression { env.GIT_BRANCH ==~ /(develop|origin\/develop)/ } }
+      agent { label 'built-in' }
+      steps {
+        cleanWs()
+        checkout scm
+
+        sh '''
+          echo "=== BUILT-IN (MERGE) ==="
+          whoami
+          hostname
+          echo "========================"
+        '''
+
+        withCredentials([usernamePassword(
+          credentialsId: env.GIT_CREDENTIALS_ID,
+          usernameVariable: 'GIT_USER',
+          passwordVariable: 'GIT_TOKEN'
+        )]) {
+          sh '''
+            set -eux
+
+            git fetch origin
+
+            # aseguramos ramas locales
+            git checkout -B develop origin/develop
+            git checkout -B master  origin/master
+
+            # merge
+            git checkout master
+            git merge develop
+
+            # push autenticado (sin pedir token interactivo)
+            REPO="$(git config remote.origin.url | sed 's#https://##')"
+            git remote set-url origin "https://${GIT_USER}:${GIT_TOKEN}@${REPO}"
+            git push origin master
+          '''
+        }
+      }
+    }
+
+    stage('Build + Deploy PRODUCTION') {
+      when { expression { env.GIT_BRANCH ==~ /(master|origin\/master)/ } }
+      agent { label 'built-in' }
+      steps {
+        cleanWs()
+        unstash 'repo'
+
+        sh '''
+          echo "=== BUILT-IN (PROD DEPLOY) ==="
+          whoami
+          hostname
+          echo "=============================="
+        '''
+
+        sh '''
+          sam validate --region "${AWS_REGION}"
+          sam build
+          ENVIRONMENT=production bash pipelines/common-steps/deploy.sh
+        '''
+
+        script {
+          def apiUrl = sh(
+            script: '''
+              aws cloudformation describe-stacks \
+                --stack-name todo-list-aws-production \
+                --query "Stacks[0].Outputs[?OutputKey==`BaseUrlApi`].OutputValue" \
+                --region us-east-1 \
+                --output text
+            ''',
+            returnStdout: true
+          ).trim()
+
+          writeFile file: 'prod_url.txt', text: apiUrl + "\n"
+          echo "PROD URL => ${apiUrl}"
+
+          stash name: 'prod-url', includes: 'prod_url.txt'
+        }
+      }
+    }
+
+    stage('API Tests PRODUCTION (readonly)') {
+      when { expression { env.GIT_BRANCH ==~ /(master|origin\/master)/ } }
+      agent { label 'api-agent' }
+      steps {
+        cleanWs()
+        unstash 'repo'
+        unstash 'prod-url'
+
+        sh '''
+          echo "=== API AGENT (PROD READONLY) ==="
+          whoami
+          hostname
+          echo "================================="
+        '''
+
+        script {
+          def apiUrl = readFile('prod_url.txt').trim()
+          withEnv(["BASE_URL=${apiUrl}"]) {
+            sh '''
+              # solo readonly
+              pytest -s --junitxml=rest-prod.xml -m "readonly" test/integration/todoApiTest.py
+            '''
+          }
+        }
+      }
+      post {
+        always { junit 'rest-prod.xml' }
+      }
+    }
+  }
+
+  post {
+    always {
+      echo "Fin del pipeline"
+    }
+  }
+}
+
