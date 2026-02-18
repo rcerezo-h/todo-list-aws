@@ -258,7 +258,7 @@ pipeline {
           set -e
           python3 -m pip install --user pytest requests
           export PATH="$HOME/.local/bin:$PATH"
-          python3 -m pytest -s --junitxml=rest-prod.xml -m "readonly" test/integration/todoApiTest.py
+          python3 -m pytest -s --junitxml=rest-prod.xml -m "readonly" test/integration/todoApiReadOnlyTest.py
         '''
       }
     }
