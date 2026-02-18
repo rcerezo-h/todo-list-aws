@@ -28,6 +28,7 @@ pipeline {
                             publishCoverage (failUnhealthy: true, 
                             globalThresholds: [[thresholdTarget: 'Line', unhealthyThreshold: 70.0]],
                             adapters: [cobertura(path: '**/coverage.xml')]
+			    )
                     }
                 }
             }
