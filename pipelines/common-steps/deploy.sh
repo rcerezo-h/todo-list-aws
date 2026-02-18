@@ -2,7 +2,7 @@
 set -euo pipefail
 set -x
 ENVIRONMENT="${ENVIRONMENT:-production}"
-STACK_NAME="todo-list-aws-${ENVIRONMENT}"
+AWS_REGION="${AWS_REGION:-us-east-1}"
 STACK_NAME="${STACK_NAME:-todo-list-aws-${ENVIRONMENT}}"
 
 du -hs * | sort -h
