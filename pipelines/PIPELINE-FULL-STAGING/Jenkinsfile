@@ -25,10 +25,9 @@ pipeline {
             post {
                 always {
                     script {
-                       cobertura(
-        		 coberturaReportFile: 'coverage.xml',
-        		 failUnhealthy: true,
-        		 lineCoverageTargets: '70,0,0'
+                           recordCoverage(
+      				tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']],
+      				qualityGates: [[threshold: 70.0, metric: 'LINE', baseline: 'PROJECT']]
 			    )
                     }
                 }
