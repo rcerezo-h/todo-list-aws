@@ -3,6 +3,7 @@ set -euo pipefail
 set -x
 ENVIRONMENT="${ENVIRONMENT:-production}"
 STACK_NAME="todo-list-aws-${ENVIRONMENT}"
+STACK_NAME="${STACK_NAME:-todo-list-aws-${ENVIRONMENT}}"
 
 du -hs * | sort -h
 
