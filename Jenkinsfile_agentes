@@ -98,34 +98,45 @@ pipeline {
       }
     }
 
-    stage('API Tests STAGING (pytest)') {
-      when { expression { env.GIT_BRANCH ==~ /(develop|origin\/develop)/ } }
-      agent { label 'api-agent' }
-      steps {
-        cleanWs()
-        unstash 'repo'
-        unstash 'staging-url'
-
-        sh '''
-          echo "=== API AGENT (STAGING TESTS) ==="
-          whoami
-          hostname
-          echo "================================="
-        '''
-
-        script {
-          def apiUrl = readFile('staging_url.txt').trim()
-          withEnv(["BASE_URL=${apiUrl}"]) {
-            sh '''
-              # usa tu script si ya existe
-              # bash pipelines/common-steps/integration.sh "$BASE_URL"
-              pytest -s --junitxml=rest-staging.xml test/integration/todoApiTest.py
-            '''
+      stage('API Tests STAGING (pytest)') {
+        when { expression { env.GIT_BRANCH ==~ /(develop|origin\/develop)/ } }
+        agent { label 'api-agent' }
+      
+        steps {
+          cleanWs()
+          unstash 'repo'
+          unstash 'staging-url'
+      
+          sh '''
+            echo "=== API AGENT (STAGING TESTS) ==="
+            whoami
+            hostname
+            echo "================================="
+          '''
+      
+          script {
+            def apiUrl = readFile('staging_url.txt').trim()
+            withEnv(["BASE_URL=${apiUrl}"]) {
+              sh '''
+                set -e
+                python3 -m pip install --user -r test/requirements.txt
+                python3 -m pytest -s --junitxml=rest-staging.xml test/integration/todoApiTest.py
+              '''
+            }
           }
         }
-      }
-      post {
-        always { junit 'rest-staging.xml' }
+      
+        post {
+          always {
+            script {
+              if (fileExists('rest-staging.xml')) {
+                junit 'rest-staging.xml'
+              } else {
+                echo 'No se generó rest-staging.xml (falló pytest antes de crear el reporte)'
+              }
+            }
+          }
+        }
       }
     }
 
