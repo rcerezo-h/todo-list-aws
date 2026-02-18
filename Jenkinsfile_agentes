@@ -119,7 +119,8 @@ pipeline {
             withEnv(["BASE_URL=${apiUrl}"]) {
               sh '''
                 set -e
-                python3 -m pip install --user -r test/requirements.txt
+                python3 -m pip install --user pytest requests
+                export PATH="$HOME/.local/bin:$PATH"
                 python3 -m pytest -s --junitxml=rest-staging.xml test/integration/todoApiTest.py
               '''
             }
