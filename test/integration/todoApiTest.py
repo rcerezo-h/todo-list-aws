@@ -133,26 +133,28 @@ class TestApi(unittest.TestCase):
             jsonbody['text'], "Integration text example - Initial", "Error en la petición API a {url}"
         )
         #Update TODO
-        url = BASE_URL+"/todos/" + ID_TODO
+        url = BASE_URL + "/todos/" + ID_TODO
         data = {
         "text": "Integration text example - Modified",
         "checked": True
-                                                  }
+        }
+
         response = requests.put(url, json=data)
         json_response = response.json()
         print('Response Update todo: ' + str(json_response))
 
         self.assertEqual(
-        response.status_code, 200, "Error en la petición API a {url}"
-                                                                            )
-
-        # La API devuelve {"statusCode": 200, "body": "..."} igual que en POST
-        jsonbody = json.loads(json_response["body"])
-        self.assertEqual(
-        jsonbody["text"], "Integration text example - Modified", "Error en la petición API a {url}"
+        response.status_code, 200, f"Error en la petición API a {url}"
         )
-        self.assertTrue(
-        bool(jsonbody["checked"]), "Error en la petición API a {url}"
+
+        # El PUT puede devolver directamente el item (sin statusCode/body)
+        self.assertEqual(
+            json_response["text"], "Integration text example - Modified",
+            f"Error en la petición API a {url}"
+        )
+        self.assertEqual(
+            json_response["checked"], True,
+            f"Error en la petición API a {url}"
         )
         #Test GET TODO
         url = BASE_URL+"/todos/"+ID_TODO
