@@ -18,6 +18,22 @@ pipeline {
       steps {
         cleanWs()
         checkout scm
+        
+    script {
+      def branch = (env.GIT_BRANCH ?: "")
+      def configBranch = (branch ==~ /(master|origin\/master)/) ? "production" : "staging"
+    
+      echo "Branch pipeline: ${branch}"
+      echo "Descargando samconfig.toml desde repo config, rama: ${configBranch}"
+    
+      sh """
+        set -e
+        curl -sSL -o samconfig.toml \
+          https://raw.githubusercontent.com/rcerezo-h/todo-list-aws-config/${configBranch}/samconfig.toml
+        echo "samconfig.toml descargado OK (primeras lineas):"
+        head -n 30 samconfig.toml || true
+      """
+    }
 
         sh '''
           echo "=== CONTEXTO ==="
@@ -187,14 +203,14 @@ pipeline {
           '''
         }
           script {
-            PROMOTED = true
-            echo "Promoción a master completada. PROMOTED=${PROMOTED}"
-          }
+          env.PROMOTED = "true"
+          echo "Promoción a master completada. PROMOTED=${env.PROMOTED}"
+        }
       }
     }
 
     stage('Build + Deploy PRODUCTION') {
-      when { expression { return PROMOTED } }
+      when { expression { return env.PROMOTED == "true" } }
       agent { label 'built-in' }
       steps {
         cleanWs()
@@ -202,6 +218,13 @@ pipeline {
       branches: [[name: '*/master']],
       userRemoteConfigs: [[url: 'https://github.com/rcerezo-h/todo-list-aws.git']]
       ])
+      
+      sh '''
+          set -e
+          curl -sSL -o samconfig.toml \
+            https://raw.githubusercontent.com/rcerezo-h/todo-list-aws-config/production/samconfig.toml
+          echo "samconfig.toml (production) descargado OK"
+        '''
 
         sh '''
           echo "=== BUILT-IN (PROD DEPLOY) ==="
@@ -245,7 +268,7 @@ pipeline {
     }
 
     stage('API Tests PRODUCTION (readonly)') {
-  when { expression { return PROMOTED } }
+  when { expression { return env.PROMOTED == "true" } }
   agent { label 'api-agent' }
 
   steps {
@@ -256,6 +279,13 @@ pipeline {
       branches: [[name: '*/master']],
       userRemoteConfigs: [[url: 'https://github.com/rcerezo-h/todo-list-aws.git']]
     ])
+    
+    sh '''
+        set -e
+          curl -sSL -o samconfig.toml \
+            https://raw.githubusercontent.com/rcerezo-h/todo-list-aws-config/production/samconfig.toml
+        echo "samconfig.toml (production) descargado OK"
+        '''
 
     // TRAE EL FICHERO prod_url.txt generado en el stage anterior
     unstash 'prod-url'
