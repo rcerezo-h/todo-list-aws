@@ -169,7 +169,7 @@ pipeline {
           sh '''
             set -eux
 
-            git fetch origin
+            git fetch origin +refs/heads/develop:refs/remotes/origin/develop +refs/heads/master:refs/remotes/origin/master
 
             git checkout -B develop origin/develop
             git checkout -B master  origin/master
