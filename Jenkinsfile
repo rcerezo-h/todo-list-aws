@@ -175,8 +175,13 @@ pipeline {
             git checkout -B master  origin/master
 
             git checkout master
-            git merge develop
-
+          # Identidad para commits de merge
+            git config user.email "jenkins@local"
+            git config user.name "Jenkins"
+          
+            # Si hay conflicto (por el Jenkinsfile), conserva el de master
+            git merge develop -X ours --no-edit
+          
             REPO="$(git config remote.origin.url | sed 's#https://##')"
             git remote set-url origin "https://${GIT_USER}:${GIT_TOKEN}@${REPO}"
             git push origin master
